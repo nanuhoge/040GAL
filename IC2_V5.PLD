@@ -1,0 +1,111 @@
+Name       IC2_V5;
+Partno     IC2_V5;
+Date       3/2/94;
+Revision   05;
+Designer   BEEPs;
+Company    FREE HARD;
+Assembly   XXXXX;
+Location   XXXXX;
+Device     g16v8a;
+
+/******************************************************************/
+/** s_long modify **/
+/** xta modify run040-mask deleted **/
+/** d_long/d_word modify add ! **/
+/** AVEC add **/
+/** as mask add for BERR check mask **/
+/** yakiimo **/
+/** next_bus->next_adr for bus-sizing **/
+/** clock change , dsa_wait **/
+/**V3 DLE **/
+/**V4 clock normal , dsa_wait delete , ts_sub add  **/
+/**V5 wait_sw add, dsa_wait add  **/
+/******************************************************************/
+
+/**  Inputs  **/
+
+Pin     1    =  _BCLK    ;      /*  */
+Pin     2    =  s_long   ;      /*  */
+Pin     3    = !AVEC     ;      /*  */
+Pin     4    = !d_long   ;      /*  */
+Pin     5    = !d_word   ;      /*  */
+Pin     6    = !BERR     ;      /*  */
+Pin     7    =  next_bus ;      /*  */
+Pin     8    = !AS       ;      /*  */
+Pin     9    = !wait_sw  ;      /*  */
+
+/**  Outputs  **/
+
+Pin    11    = !oe_always;      /*  */
+Pin    12    =  xta      ;      /*  */
+Pin    13    = !TA       ;      /*  */
+Pin    14    = !TEA      ;      /*  */
+Pin    15    = !as_mask  ;      /*  */
+Pin    16    =  ta_sub   ;      /*  */
+Pin    17    = !dsa_wait ;      /*  */
+Pin    18    =  DLE      ;      /*  */
+Pin    19    =  next_adr ;      /*  */
+
+/**  Logic Equations  **/
+
+s_word = !s_long;
+
+as_mask.d = AS;
+dsa_wait.d = ( d_long # d_word );
+
+/*v1
+xta.d  =  AS & ( d_long # d_word # (BERR # AVEC) & as_mask );
+
+TA.d   =  AS & (    s_long & d_long
+                 #  s_word & d_long
+                 #  s_word & d_word
+                 #  s_long & d_word & next_bus
+                 #  AVEC & as_mask );
+*/
+/*v2
+xta.d  =  AS & (   (d_long # d_word) & dsa_wait 
+                 # ( BERR  # AVEC )  & as_mask );
+TA.d   =  AS & (    s_long & d_long & dsa_wait
+                 #  s_word & d_long & dsa_wait
+                 #  s_word & d_word & dsa_wait
+                 #  s_long & d_word & dsa_wait & next_bus
+                 #  AVEC & as_mask );
+*/
+/*v3
+xta.d  =  AS & (   (d_long # d_word) & dsa_wait 
+                 # ( BERR  # AVEC )  & as_mask );
+ta_sub.d =  AS & (  s_long & d_long & dsa_wait
+                 #  s_word & d_long & dsa_wait
+                 #  s_word & d_word & dsa_wait
+                 #  s_long & d_word & dsa_wait & next_bus
+                 #  AVEC & as_mask );
+TA.d   =    ta_sub  & !AVEC
+          # as_mask &  AVEC;
+*/
+/*v4
+xta.d  =  AS & (   (d_long # d_word) 
+                 # ( BERR  # AVEC )  & as_mask );
+
+ta_sub.d =  AS & (  s_word & d_word 
+                 #  s_long & d_word & next_bus );
+
+TA.d   =    ( d_long # ta_sub ) & !AVEC 
+           # as_mask &  AVEC;
+*/
+/*v5*/
+wait_mask = !wait_sw # dsa_wait;
+
+xta.d  =  AS & (   (d_long # d_word) & wait_mask
+                 # ( BERR  # AVEC )  & as_mask );
+
+ta_sub.d =  AS & (  s_word & d_word 
+                 #  s_long & d_word & next_bus ) & wait_mask;
+
+TA.d   =    (( d_long & wait_mask ) # ta_sub ) & !AVEC 
+           # as_mask &  AVEC;
+
+
+TEA.d  =  AS & BERR & as_mask;
+next_adr.d = next_bus;
+
+DLE = AS;
